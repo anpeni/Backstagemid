@@ -1,91 +1,82 @@
-import React from 'react';
-import { makeStyles } from '@material-ui/core/styles';
-import { Table, TableColumn, Progress, ResponseErrorPanel } from '@backstage/core-components';
-import { fetchApiRef, useApi } from '@backstage/core-plugin-api';
-import useAsync from 'react-use/lib/useAsync';
+import React, { useEffect, useState, useRef } from 'react';
+import './Index.css';
+import List from './List'
+import Form from './Form';
 
-const useStyles = makeStyles({
-  avatar: {
-    height: 32,
-    width: 32,
-    borderRadius: '50%',
-  },
-});
+interface AppState {
+  subs: Array<Sub>
+  newSubsNumber: number;
 
-type User = {
-  gender: string; // "male"
-  name: {
-    title: string; // "Mr",
-    first: string; // "Duane",
-    last: string; // "Reed"
-  };
-  location: object; // {street: {number: 5060, name: "Hickory Creek Dr"}, city: "Albany", state: "New South Wales",…}
-  email: string; // "duane.reed@example.com"
-  login: object; // {uuid: "4b785022-9a23-4ab9-8a23-cb3fb43969a9", username: "blackdog796", password: "patch",…}
-  dob: object; // {date: "1983-06-22T12:30:23.016Z", age: 37}
-  registered: object; // {date: "2006-06-13T18:48:28.037Z", age: 14}
-  phone: string; // "07-2154-5651"
-  cell: string; // "0405-592-879"
-  id: {
-    name: string; // "TFN",
-    value: string; // "796260432"
-  };
-  picture: { medium: string }; // {medium: "https://randomuser.me/api/portraits/men/95.jpg",…}
-  nat: string; // "AU"
-};
+}
 
-type DenseTableProps = {
-  users: User[];
-};
+export interface Sub {
+  nick: string
+  subMonths: number
+  avatar: string
+  description?: string
+}
 
-export const DenseTable = ({ users }: DenseTableProps) => {
-  const classes = useStyles();
+export type SubResponseFromApi = Array<{
+  nick: string
+  months: number
+  profileUrl: string
+  description?: string
 
-  const columns: TableColumn[] = [
-    { title: 'Avatar', field: 'avatar' },
-    { title: 'Name', field: 'name' },
-    { title: 'Email', field: 'email' },
-    { title: 'Nationality', field: 'nationality' },
-  ];
 
-  const data = users.map(user => {
-    return {
-      avatar: (
-        <img
-          src={user.picture.medium}
-          className={classes.avatar}
-          alt={user.name.first}
-        />
-      ),
-      name: `${user.name.first} ${user.name.last}`,
-      email: user.email,
-      nationality: user.nat,
-    };
-  });
+}>
 
-  return (
-    <Table
-      title="Example User List (fetching data from randomuser.me)"
-      options={{ search: false, paging: false }}
-      columns={columns}
-      data={data}
-    />
-  );
-};
 
-export const ExampleFetchComponent = () => {
-  const { fetch } = useApi(fetchApiRef);
-  const { value, loading, error } = useAsync(async (): Promise<User[]> => {
-    const response = await fetch('https://randomuser.me/api/?results=20');
-    const data = await response.json();
-    return data.results;
-  }, []);
 
-  if (loading) {
-    return <Progress />;
-  } else if (error) {
-    return <ResponseErrorPanel error={error} />;
+export function ExampleFetchComponent() {
+  const [subs, setSubs] = useState<AppState["subs"]>([])
+  const [newSubsNumber, setNewSubsNumber] = useState<AppState['newSubsNumber']>(0)
+  const divRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const fetchSubs = ():Promise<SubResponseFromApi> =>{
+      return fetch('http://localhost:3001/subs')
+      .then(res => res.json())
+    }
+    const mapFromApiToSubs = (apiResponse: SubResponseFromApi): 
+    Array<Sub> => {
+      return apiResponse.map(subFromApi => {
+        const {
+          months: subMonths,
+          profileUrl: avatar,
+          nick,
+          description
+        } = subFromApi
+        return {
+          nick,
+          description,
+          avatar,
+          subMonths
+        }
+      })
+
+
+    }
+    //setSubs(INITIAL_STATE)
+    fetchSubs()
+    .then(mapFromApiToSubs)
+    .then(setSubs)
+    
+  }, [])
+
+  const handleNewSub = (newSub: Sub): void => {
+    setSubs(subs => [... subs, newSub])
+    setNewSubsNumber(n => n+1)
   }
 
-  return <DenseTable users={value || []} />;
-};
+  return (
+    <div className='App' ref={divRef}>
+      <h1>Subscriptores</h1>
+
+      <List subs={subs} />
+      New subs: {newSubsNumber}
+      <Form onNewSub={handleNewSub} />
+    </div>
+
+  );
+}
+
+//export default App;

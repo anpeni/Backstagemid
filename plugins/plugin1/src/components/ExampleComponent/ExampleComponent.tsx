@@ -10,8 +10,15 @@ import {
   SupportButton,
 } from '@backstage/core-components';
 import { ExampleFetchComponent } from '../ExampleFetchComponent';
+import { identityApiRef, useApi } from '@backstage/core-plugin-api';
 
-export const ExampleComponent = () => (
+export const ExampleComponent = () => {
+
+  const identityApi = useApi(identityApiRef);
+  //const userId = identityApi.getUserId();
+  const profile = identityApi.getBackstageIdentity;
+
+  return (
   <Page themeId="tool">
     <Header title="Welcome to plugin1!" subtitle="Optional subtitle">
       <HeaderLabel label="Owner" value="Team X" />
@@ -25,7 +32,7 @@ export const ExampleComponent = () => (
         <Grid item>
           <InfoCard title="Information card">
             <Typography variant="body1">
-              All content should be wrapped in a card like this.
+            ${profile.name.toString}
             </Typography>
           </InfoCard>
         </Grid>
@@ -35,4 +42,5 @@ export const ExampleComponent = () => (
       </Grid>
     </Content>
   </Page>
-);
+  )
+};
